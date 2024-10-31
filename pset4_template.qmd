@@ -144,6 +144,15 @@ plt.show()
 ## Identify hospital closures in POS file (15 pts) (*)
 
 1. 
+```{python}
+#filter active hospital in 2016-2019
+active_2016 = df_2016[df_2016['PGM_TRMNTN_CD'] == 'Active']
+active_2017 = df_2017[df_2017['PGM_TRMNTN_CD'] == 'Active']
+active_2018 = df_2016[df_2018['PGM_TRMNTN_CD'] == 'Active']
+active_2019 = df_2019[df_2019['PGM_TRMNTN_CD'] == 'Active']
+# Assuming 'Hospital_ID' is the unique identifier
+active_hospitals_2016 = active_2016['Hospital_ID'].unique()  
+```
 2. 
 3. 
     a.
@@ -153,9 +162,57 @@ plt.show()
 ## Download Census zip code shapefile (10 pt) 
 
 1. 
+
     a.
+    ## File types and the file information
+    ### .shp (Shape File): 
+    Contains the geometry of the features, such as points, lines, and polygons. It is the core spatial data file that defines the location, shape, and boundaries of geographical features.
+    size: 837,544,580 bytes (837.5 MB on disk)
+    ### .shx (Shape Index File): 
+    An index for the .shp file, which helps in efficiently locating records. It stores the offsets of the geometries in the .shp file.
+    size: 265,060 bytes (266 KB on disk)
+    ### .dbf (Database File): 
+    A dBASE file that contains attribute data associated with each shape. This file includes tabular information, such as names, population counts, or other relevant attributes of the geometries.
+    size: 6,425,474 bytes (6.4 MB on disk)
+    ### .prj (Projection File): 
+    Describes the coordinate system and projection information used for the shapefile. It ensures that spatial data from different sources can align properly.
+    size: 165 bytes (4 KB on disk)
+    ### .xml (Metadata File): 
+    Contains metadata, such as descriptive information about the data content, creation process, and purpose of the dataset.
+    size: 15,639 bytes (16 KB on disk)
+
     b. 
+     It will be useful going forward to having .shp and .dbf files larger. The .shp file contains the geometries, which can be bulky, while the .dbf stores attribute data. 
+     However, .shx, .prj, and .xml files are expected to be relatively smaller since they only store index, projection, and metadata information, respectively. 
+     After unzipping, the size of those files shows in a.
+
 2. 
+```{python}
+import geopandas as gpd
+
+# Load the shapefile and the cleaned POS file
+shapefile_path = '/Users/yuewang1/Desktop/python 2/hw4/gz_2010_us_860_00_500k/gz_2010_us_860_00_500k.shp' 
+gdf = gpd.read_file(shapefile_path)
+pos_path = "cleaned_pos_2016.csv"  # 这个地方是第二问the cleaned POS file 
+pos_df = pd.read_csv(pos_path)
+
+# Filter to Texas ZIP code
+gdf_zipcodes = gdf[gdf['ZCTA5CE10'].str.startswith(('75', '76', '77', '78', '79', '88'))]
+pos_hospitals = pos_df[pos_df['zip_code'].str.startswith(('75', '76', '77', '78', '79', '88'))]
+
+# Count number of hospitals per ZIP code
+hospital_counts = pos_hospitals['zip_code'].value_counts().reset_index()
+hospital_counts.columns = ['zip_code', 'hospital_count']
+gdf_zipcodes = gdf_zipcodes.merge(hospital_counts, left_on='ZCTA5CE10', right_on='zip_code', how='left').fillna(0)
+
+# Plot choropleth
+fig, ax = plt.subplots(figsize=(12, 12))
+gdf_zipcodes.plot( column='hospital_count', cmap='OrRd', linewidth=0.8, ax=ax, edgecolor='0.8', legend=True)
+ax.set_title('Number of Hospitals per Zip Code in Texas (2016)')
+plt.axis('off')
+plt.show()
+
+```
 
 ## Calculate zip code’s distance to the nearest hospital (20 pts) (*)
 
